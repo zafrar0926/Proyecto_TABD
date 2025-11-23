@@ -145,9 +145,9 @@ looker_url = st.text_input(
 
 st.components.v1.html(
     f"""
-    <iframe src="{looker_url}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>
+    <iframe src="{looker_url}" width="100%" height="1200" frameborder="0" allowfullscreen></iframe>
     """,
-    height=620,
+    height=1220,
 )
 
 # ===========================
