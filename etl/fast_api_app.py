@@ -12,6 +12,12 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from decimal import Decimal
 import json
+from setup_aws_credentials import setup_aws_credentials
+
+# -------------------------------
+# Configuración de credenciales
+# -------------------------------
+setup_aws_credentials()
 
 # -------------------------------
 # Configuración

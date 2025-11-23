@@ -5,6 +5,8 @@ from bigquery_to_dynamo import run_bigquery_to_dynamo
 import streamlit as st
 import requests
 import pandas as pd
+import time
+from datetime import datetime
 
 # ===========================
 # CONFIGURACIÓN GENERAL
@@ -19,52 +21,116 @@ st.title("🏁 Plataforma de Análisis Estratégico - Fórmula 1")
 st.markdown("### Integración BigQuery + Looker + DynamoDB + FastAPI")
 
 # ===========================
-# SECCIÓN 0: BOTONES ETL (arriba del todo)
+# SECCIÓN 0: INGESTA AUTOMÁTICA
 # ===========================
 st.markdown("---")
-st.subheader("🛠️ ETL - Actualización de Datos (Mongo → BigQuery → DynamoDB)")
+st.subheader("🛠️ Ingesta Automática de Datos (Mongo → BigQuery → DynamoDB)")
 
-colA, colB, colC = st.columns(3)
+# Inicializar estado de sesión
+if 'ingesta_activa' not in st.session_state:
+    st.session_state.ingesta_activa = False
+if 'ultima_ejecucion' not in st.session_state:
+    st.session_state.ultima_ejecucion = None
+if 'contador_ejecuciones' not in st.session_state:
+    st.session_state.contador_ejecuciones = 0
+if 'ultimo_log' not in st.session_state:
+    st.session_state.ultimo_log = []
 
-# 0.1 Selección de Año
-with colA:
-    st.markdown("### 📅 Año a cargar")
-    load_year = st.number_input(
-        "Selecciona el año",
-        min_value=2018,
-        max_value=2025,
-        step=1,
-        value=2023,
-        key="load_year_input"
-    )
+# Año fijo para ingesta automática
+INGESTA_YEAR = 2025
+INTERVALO_SEGUNDOS = 30
 
-# 0.2 Mongo → BigQuery
-with colB:
-    st.markdown("### 📥 Mongo → BigQuery")
-    if st.button("Cargar año desde MongoDB"):
-        with st.spinner(f"Cargando datos del año {load_year} desde MongoDB..."):
-            result = run_mongo_to_bigquery(load_year)
-        st.success("Carga completada.")
-        st.text(result)
+col1, col2 = st.columns([1, 1])
 
-# 0.3 Transformación de perfiles
-with colC:
-    st.markdown("### 🔧 Transformación de Perfiles")
-    if st.button("Crear perfiles de pilotos"):
-        with st.spinner(f"Ejecutando transformación en BigQuery para {load_year}..."):
-            result = run_transform_profiles(load_year)
-        st.success("Transformación completada.")
-        st.text(result)
+with col1:
+    if st.button("🚀 Activar Ingesta Automática", type="primary", disabled=st.session_state.ingesta_activa):
+        st.session_state.ingesta_activa = True
+        st.session_state.contador_ejecuciones = 0
+        st.success(f"✅ Ingesta automática ACTIVADA (Año: {INGESTA_YEAR}, cada {INTERVALO_SEGUNDOS}s)")
+        st.rerun()
 
-# 0.4 BigQuery → DynamoDB debajo
-colD, colE, colF = st.columns(3)
-with colE:
-    st.markdown("### 📤 BigQuery → DynamoDB")
-    if st.button("Actualizar DynamoDB"):
-        with st.spinner("Actualizando DynamoDB..."):
-            result = run_bigquery_to_dynamo()
-        st.success("DynamoDB actualizado.")
-        st.text(result)
+with col2:
+    if st.button("⏹️ Desactivar Ingesta Automática", type="secondary", disabled=not st.session_state.ingesta_activa):
+        st.session_state.ingesta_activa = False
+        st.session_state.ultimo_log = []
+        st.warning("⏹️ Ingesta automática desactivada.")
+        st.rerun()
+
+# Mostrar estado actual
+st.markdown("---")
+col_status1, col_status2, col_status3 = st.columns(3)
+
+with col_status1:
+    if st.session_state.ingesta_activa:
+        st.success(f"🟢 Estado: ACTIVA")
+    else:
+        st.info(f"🔴 Estado: INACTIVA")
+
+with col_status2:
+    st.metric("Ejecuciones totales", st.session_state.contador_ejecuciones)
+
+with col_status3:
+    if st.session_state.ultima_ejecucion:
+        st.metric("Última ejecución", st.session_state.ultima_ejecucion)
+    else:
+        st.metric("Última ejecución", "N/A")
+
+# Área de logs
+log_container = st.container()
+
+# Ejecutar ingesta si está activa
+if st.session_state.ingesta_activa:
+    with log_container:
+        st.markdown("### 📋 Logs de Ejecución")
+
+        try:
+            # Mostrar hora de inicio
+            hora_inicio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            st.info(f"⏰ Iniciando ejecución #{st.session_state.contador_ejecuciones + 1} a las {hora_inicio}")
+
+            # Paso 1: Cargar desde MongoDB a BigQuery
+            with st.spinner(f"📥 Paso 1: Cargando datos del año {INGESTA_YEAR} desde MongoDB..."):
+                result_mongo = run_mongo_to_bigquery(INGESTA_YEAR)
+            st.success("✅ Paso 1 completado: Carga desde MongoDB")
+            with st.expander("Ver detalles de MongoDB → BigQuery"):
+                st.text(result_mongo)
+
+            # Paso 2: Actualizar DynamoDB
+            with st.spinner("📤 Paso 2: Actualizando DynamoDB..."):
+                result_dynamo = run_bigquery_to_dynamo()
+            st.success("✅ Paso 2 completado: DynamoDB actualizado")
+            with st.expander("Ver detalles de BigQuery → DynamoDB"):
+                st.text(result_dynamo)
+
+            # Actualizar estado
+            st.session_state.contador_ejecuciones += 1
+            st.session_state.ultima_ejecucion = hora_inicio
+
+            st.success(f"🎉 Ejecución #{st.session_state.contador_ejecuciones} completada exitosamente!")
+
+            # Esperar 30 segundos antes de la próxima ejecución
+            st.info(f"⏳ Esperando {INTERVALO_SEGUNDOS} segundos para la próxima ejecución...")
+            time.sleep(INTERVALO_SEGUNDOS)
+
+            # Recargar la página para ejecutar de nuevo
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"❌ Error durante la ejecución #{st.session_state.contador_ejecuciones + 1}: {e}")
+            st.warning("La ingesta automática continuará en el próximo ciclo...")
+
+            # Actualizar contador incluso con error
+            st.session_state.contador_ejecuciones += 1
+            st.session_state.ultima_ejecucion = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # Esperar y reintentar
+            time.sleep(INTERVALO_SEGUNDOS)
+            st.rerun()
+
+else:
+    with log_container:
+        st.markdown("### 📋 Logs de Ejecución")
+        st.info("⏸️ La ingesta automática está desactivada. Presiona 'Activar Ingesta Automática' para comenzar.")
 
 # ===========================
 # SECCIÓN 1: Dashboard Looker

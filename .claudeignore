@@ -1,0 +1,21 @@
+# Archivos de credenciales sensibles
+2. From_Mongo_to_BigQuery/topicos-bases-datos-0af108d2076b.json
+3. From Bigquery_to_Dynamo/bq-dynamodb-writer_accessKeys.csv
+
+# Archivos con claves o secretos
+*.json
+*.csv
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Carpetas de dependencias
+node_modules/
+__pycache__/
+*.pyc

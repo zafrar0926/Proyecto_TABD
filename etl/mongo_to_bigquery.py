@@ -20,8 +20,10 @@ COLLECTIONS = ["laps_enriched", "race_control", "results", "weather"]
 PROJECT_ID = "topicos-bases-datos"
 DATASET = "f1_data_warehouse"
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = (
-    r"C:\Users\santi\Downloads\Learning\Maestria\Topicos Avanzados en Bases de Datos\Proyecto Final\Entrega\Core\2. From_Mongo_to_BigQuery\topicos-bases-datos-0af108d2076b.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "2. From_Mongo_to_BigQuery",
+    "topicos-bases-datos-0af108d2076b.json"
 )
 
 bq_client = bigquery.Client(project=PROJECT_ID)

@@ -45,13 +45,21 @@ def run_bigquery_to_dynamo():
     # -------------------------------
     # CREDENCIALES GOOGLE BIGQUERY
     # -------------------------------
-    GOOGLE_CREDENTIALS_PATH = r"C:\Users\santi\Downloads\Learning\Maestria\Topicos Avanzados en Bases de Datos\Proyecto Final\Entrega\Core\2. From_Mongo_to_BigQuery\topicos-bases-datos-0af108d2076b.json"
+    GOOGLE_CREDENTIALS_PATH = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "2. From_Mongo_to_BigQuery",
+        "topicos-bases-datos-0af108d2076b.json"
+    )
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_CREDENTIALS_PATH
 
     # -------------------------------
     # CARGAR CREDENCIALES AWS DESDE CSV
     # -------------------------------
-    CSV_PATH = r"C:\Users\santi\Downloads\Learning\Maestria\Topicos Avanzados en Bases de Datos\Proyecto Final\Entrega\Core\3. From Bigquery_to_Dynamo\bq-dynamodb-writer_accessKeys.csv"
+    CSV_PATH = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "3. From Bigquery_to_Dynamo",
+        "bq-dynamodb-writer_accessKeys.csv"
+    )
 
     with open(CSV_PATH, "r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
