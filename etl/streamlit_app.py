@@ -23,7 +23,7 @@ from styles import get_custom_css
 from components import render_sidebar, render_header
 
 # Tabs
-from tabs import render_telemetry_tab, render_driver_intel_tab, render_pipeline_tab
+from tabs import render_telemetry_tab, render_driver_intel_tab, render_pipeline_tab, render_presentation_tab
 
 
 def main():
@@ -39,7 +39,8 @@ def main():
     render_header()
 
     # Crear tabs principales
-    tab1, tab2, tab3 = st.tabs([
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📽️ PRESENTATION",
         "📊 LIVE TELEMETRY",
         "🏎️ DRIVER INTEL",
         "⚙️ DATA PIPELINE"
@@ -47,12 +48,15 @@ def main():
 
     # Renderizar contenido de cada tab
     with tab1:
-        render_telemetry_tab()
+        render_presentation_tab()
 
     with tab2:
-        render_driver_intel_tab()
+        render_telemetry_tab()
 
     with tab3:
+        render_driver_intel_tab()
+
+    with tab4:
         render_pipeline_tab()
 
     # Footer

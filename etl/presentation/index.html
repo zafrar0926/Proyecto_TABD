@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura F1 - Proyecto TABD</title>
+    <!-- Fuentes Técnicas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Titillium+Web:wght@200;300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --f1-red: #FF1801;
+            --f1-dark: #15151E;
+            --f1-black: #000000;
+            --tech-cyan: #00F0FF;
+            --tech-green: #39FF14;
+            --text-grey: #B0B0B0;
+            --glass-bg: rgba(21, 21, 30, 0.85);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--f1-black);
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)),
+                repeating-linear-gradient(0deg, transparent, transparent 1px, #1a1a1a 1px, #1a1a1a 2px),
+                repeating-linear-gradient(90deg, transparent, transparent 1px, #1a1a1a 1px, #1a1a1a 2px);
+            background-size: 100% 100%, 50px 50px, 50px 50px;
+            color: white;
+            font-family: 'Titillium Web', sans-serif;
+            overflow: hidden; /* Evitar scroll, es una presentación */
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- UI ELEMENTS --- */
+        .telemetry-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #333;
+            z-index: 100;
+        }
+        
+        .progress-indicator {
+            height: 100%;
+            background: var(--f1-red);
+            width: 0%;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px var(--f1-red);
+        }
+
+        .footer-info {
+            position: fixed;
+            bottom: 20px;
+            left: 30px;
+            font-size: 0.8rem;
+            color: var(--text-grey);
+            font-family: 'Michroma', sans-serif;
+            opacity: 0.5;
+            z-index: 100;
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            font-size: 1.5rem;
+            font-family: 'Michroma', sans-serif;
+            color: var(--f1-red);
+            z-index: 100;
+        }
+
+        .nav-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 100px;
+            z-index: 101;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-nav {
+            background: transparent;
+            border: 1px solid var(--text-grey);
+            color: white;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .btn-nav:hover {
+            border-color: var(--f1-red);
+            background: rgba(255, 24, 1, 0.1);
+            color: var(--f1-red);
+        }
+
+        /* --- SLIDE LAYOUT --- */
+        .slide-container {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .slide {
+            position: absolute;
+            width: 85%;
+            height: 80%;
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            display: none; /* Hide completely when not active */
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+            display: flex;
+        }
+
+        .slide.prev {
+            opacity: 0;
+            transform: translateX(-100px);
+            display: flex; /* Keep layout for smooth exit */
+        }
+
+        /* --- TYPOGRAPHY --- */
+        h1 {
+            font-family: 'Michroma', sans-serif;
+            font-size: 3.5rem;
+            line-height: 1.1;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        h1 span {
+            color: var(--f1-red);
+        }
+
+        h2 {
+            font-family: 'Michroma', sans-serif;
+            font-size: 2rem;
+            color: var(--text-grey);
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--f1-red);
+            display: inline-block;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: var(--tech-cyan);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        p, li {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: #E0E0E0;
+            margin-bottom: 15px;
+        }
+
+        /* --- COMPONENT STYLES --- */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            border: 1px solid #333;
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 4px solid var(--f1-red);
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-left-color: var(--tech-cyan);
+            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.1);
+        }
+
+        .big-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: rgba(255,255,255,0.1);
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-family: 'Michroma';
+        }
+
+        .arch-image-container {
+            width: 100%;
+            height: 60vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #333;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .arch-image-container img {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        
+        /* Grid Lines overlay */
+        .grid-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .tech-pill {
+            display: inline-block;
+            padding: 5px 15px;
+            border: 1px solid var(--f1-red);
+            color: var(--f1-red);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .code-snippet {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            padding: 15px;
+            border-radius: 5px;
+            color: var(--tech-green);
+            border-left: 3px solid var(--tech-green);
+            margin-top: 10px;
+        }
+
+        /* --- ANIMATIONS --- */
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .delay-1 { animation-delay: 0.2s; }
+        .delay-2 { animation-delay: 0.4s; }
+        .delay-3 { animation-delay: 0.6s; }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- UI Overlay -->
+    <div class="telemetry-bar"><div class="progress-indicator" id="progress"></div></div>
+    <div class="footer-info">PUJ // MAESTRÍA IA // TÓPICOS BD</div>
+    <div class="slide-counter" id="counter">01<span style="font-size:0.8rem; color:#666">/11</span></div>
+    
+    <div class="nav-buttons">
+        <button class="btn-nav" onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
+        <button class="btn-nav" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
+    </div>
+
+    <div class="slide-container">
+
+        <!-- SLIDE 1: TÍTULO -->
+        <div class="slide active">
+            <div style="border-left: 10px solid var(--f1-red); padding-left: 30px;">
+                <p class="tech-pill fade-in-up">Proyecto Final</p>
+                <h1 class="fade-in-up delay-1">Arquitectura <span>Políglota</span><br>para Análisis Estratégico de F1</h1>
+                <p class="fade-in-up delay-2" style="font-size: 1.5rem; color: var(--tech-cyan);">MongoDB · BigQuery · DynamoDB · FastAPI · Streamlit</p>
+            </div>
+            <div style="margin-top: 50px;" class="fade-in-up delay-3">
+                <p><strong>Autores:</strong> Nicolás Torres, Santiago Zafra, Carlos Bidueñez</p>
+                <p style="color: #666;">Pontificia Universidad Javeriana - Maestría en Inteligencia Artificial</p>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: PROBLEMA -->
+        <div class="slide">
+            <h2>El Problema de Negocio</h2>
+            <div class="split-layout">
+                <div class="card fade-in-up">
+                    <h3 style="color: var(--f1-red);"><i class="fas fa-exclamation-triangle"></i> El Dolor</h3>
+                    <p>En F1, las decisiones se toman en milisegundos.</p>
+                    <ul style="list-style-type: none; padding:0;">
+                        <li>❌ Datos dispersos y heterogéneos.</li>
+                        <li>❌ Formatos no optimizados para tiempo real.</li>
+                        <li>❌ Dificultad para cruzar históricos con telemetría en vivo.</li>
+                    </ul>
+                </div>
+                <div class="card fade-in-up delay-1" style="border-left-color: var(--tech-green);">
+                    <h3 style="color: var(--tech-green);"><i class="fas fa-check-circle"></i> La Solución</h3>
+                    <p>Una arquitectura híbrida que resuelve dos mundos opuestos:</p>
+                    <ul style="list-style-type: none; padding:0;">
+                        <li>✅ <strong>OLAP (BigQuery):</strong> Análisis profundo de terabytes históricos.</li>
+                        <li>✅ <strong>OLTP (DynamoDB):</strong> Servicio de baja latencia para apps en vivo.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: OBJETIVOS SMART -->
+        <div class="slide">
+            <h2 style="margin-bottom: 40px;">Objetivos SMART</h2>
+
+            <div class="arch-image-container fade-in-up" style="height: 70vh;">
+                <div class="grid-overlay"></div>
+                <img src="smart.png" alt="SMART Objectives Visual" style="max-width: 100%; max-height: 100%;">
+            </div>
+        </div>
+
+        <!-- SLIDE 4: ARQUITECTURA -->
+        <div class="slide">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Arquitectura de Alto Nivel</h2>
+                <span class="tech-pill">Diagrama de Componentes</span>
+            </div>
+            
+            <div class="arch-image-container fade-in-up">
+                <div class="grid-overlay"></div>
+                <!-- AQUÍ VA LA IMAGEN SUBIDA POR EL USUARIO -->
+                <img src="/etl/presentation/Gemini_Generated_Image_bqzbasbqzbasbqzb.png" alt="Arquitectura Políglota Diagrama">
+            </div>
+            
+            <div style="display: flex; justify-content: space-around; margin-top: 20px; font-size: 0.9rem; color: #888;">
+                <span><i class="fas fa-database"></i> MongoDB (Raw)</span>
+                <span><i class="fas fa-server"></i> BigQuery (Analytics)</span>
+                <span><i class="fas fa-bolt"></i> DynamoDB (Speed)</span>
+                <span><i class="fas fa-desktop"></i> Streamlit (UI)</span>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: MONGO DB -->
+        <div class="slide">
+            <h2>Componente 1: Ingesta (MongoDB)</h2>
+            <div class="split-layout">
+                <div>
+                    <h3><i class="fas fa-leaf"></i> Landing Zone</h3>
+                    <p><strong>Rol:</strong> Almacén Documental de datos crudos.</p>
+                    <p><strong>Colecciones:</strong> <code>laps_enriched</code>, <code>weather</code>, <code>results</code>.</p>
+                    <br>
+                    <div class="card" style="border-left-color: var(--tech-green);">
+                        <h4>¿Por qué MongoDB?</h4>
+                        <p>La telemetría cambia. Un esquema rígido SQL rompería el pipeline si la FIA agrega un nuevo sensor. El modelo JSON es natural para la ingesta.</p>
+                    </div>
+                </div>
+                <div class="code-snippet fade-in-up delay-2">
+                    // Ejemplo de Documento<br>
+                    {<br>
+                      "driver": "VER",<br>
+                      "lap": 45,<br>
+                      "telemetry": {<br>
+                        "speed": 310,<br>
+                        "throttle": 100,<br>
+                        "drs": true<br>
+                      },<br>
+                      "weather_impact": "dry"<br>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: BIGQUERY -->
+        <div class="slide">
+            <h2>Componente 2: Analítica (BigQuery)</h2>
+            <div class="split-layout">
+                <div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Google_BigQuery_Logo.svg/1200px-Google_BigQuery_Logo.svg.png" style="width: 100px; opacity: 0.8; margin-bottom: 20px;">
+                    <h3><i class="fas fa-search"></i> Data Warehouse</h3>
+                    <p><strong>Rol:</strong> Motor OLAP masivo.</p>
+                    <p>Aquí ocurren las matemáticas pesadas:</p>
+                    <ul>
+                        <li>Cálculo de <code>tyreManagementIndex</code>.</li>
+                        <li>Funciones de ventana para <code>consistencyScore</code>.</li>
+                        <li>Correlaciones estadísticas (SQL <code>CORR()</code>).</li>
+                    </ul>
+                </div>
+                <div class="card fade-in-up delay-1" style="border-left-color: #4285F4;">
+                    <h4>Ventaja Competitiva</h4>
+                    <p>El almacenamiento columnar permite escanear millones de vueltas en segundos. Sería ineficiente hacer estos cálculos agregados en Mongo o en tiempo real.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: DYNAMODB -->
+        <div class="slide">
+            <h2>Componente 3: Servicio (DynamoDB)</h2>
+            <div class="split-layout">
+                <div class="card fade-in-up" style="border-left-color: #FF9900;">
+                    <h3><i class="fas fa-bolt"></i> Baja Latencia</h3>
+                    <p><strong>Rol:</strong> Key-Value Store para la API.</p>
+                    <p><strong>Tabla:</strong> <code>perfiles_pilotos</code></p>
+                    <p><strong>Clave:</strong> <code>DriverID</code> (ej. "VER")</p>
+                </div>
+                <div>
+                    <h3>Filosofía de Diseño</h3>
+                    <p><strong>"Separación de Cargas"</strong></p>
+                    <p>Aislamos las consultas de la aplicación (miles de fans consultando perfiles) de la base de datos analítica.</p>
+                    <div class="code-snippet">
+                        GET /driver/HAM<br>
+                        Latency: 12ms<br>
+                        Status: 200 OK
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 8: PIPELINE -->
+        <div class="slide">
+            <h2>Pipeline de Datos (ETL)</h2>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 20px; text-align: center; margin-top: 40px;">
+                
+                <div class="card fade-in-up delay-1">
+                    <i class="fas fa-file-import fa-2x" style="color: var(--tech-cyan);"></i>
+                    <h4 style="margin-top: 10px;">Extract & Load</h4>
+                    <small>mongo_to_bigquery.py</small>
+                </div>
+
+                <i class="fas fa-arrow-right fa-2x" style="color: #666;"></i>
+
+                <div class="card fade-in-up delay-2">
+                    <i class="fas fa-cogs fa-2x" style="color: var(--f1-red);"></i>
+                    <h4 style="margin-top: 10px;">Transform</h4>
+                    <small>transform_profiles.py (SQL)</small>
+                </div>
+
+                <i class="fas fa-arrow-right fa-2x" style="color: #666;"></i>
+
+                <div class="card fade-in-up delay-3">
+                    <i class="fas fa-rocket fa-2x" style="color: var(--tech-green);"></i>
+                    <h4 style="margin-top: 10px;">Serve</h4>
+                    <small>bigquery_to_dynamo.py</small>
+                </div>
+
+            </div>
+            <p style="text-align: center; margin-top: 40px; color: #888;">Orquestación controlada desde Streamlit (Manual Trigger)</p>
+        </div>
+
+        <!-- SLIDE 9: CONSUMO -->
+        <div class="slide">
+            <h2>Capa de Visualización</h2>
+            <div class="split-layout">
+                <div>
+                    <h3>Streamlit Hub</h3>
+                    <p>El centro de comando unificado. Permite ejecutar los ETLs y visualizar los resultados en tiempo real.</p>
+                </div>
+                <div>
+                    <h3>Looker Studio</h3>
+                    <p>Dashboard BI embebido para análisis profundos (Gráficas de dispersión y líneas temporales).</p>
+                </div>
+                <div>
+                    <h3>FastAPI</h3>
+                    <p>Expone los datos calculados al mundo exterior de forma estandarizada y documentada.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 10: DEMO -->
+        <div class="slide">
+            <h2>Resultados y Demo</h2>
+            <div class="split-layout">
+                <div class="card">
+                    <h4><i class="fas fa-chart-line"></i> Dashboard</h4>
+                    <p>Curvas de degradación de neumáticos claras, permitiendo identificar el punto de "crossover" estratégico.</p>
+                    <div style="height: 100px; background: rgba(255,255,255,0.05); margin-top: 10px; display: flex; align-items: center; justify-content: center;">[DEMO VISUAL]</div>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-tachometer-alt"></i> Performance</h4>
+                    <p>Meta cumplida: Respuestas de API consistentemente por debajo de los <strong>200ms</strong> gracias a DynamoDB.</p>
+                    <div style="height: 100px; background: rgba(255,255,255,0.05); margin-top: 10px; display: flex; align-items: center; justify-content: center;">18ms AVG</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 11: CONCLUSIONES -->
+        <div class="slide">
+            <h2>Conclusiones y Futuro</h2>
+            <div class="card fade-in-up" style="border-left: 5px solid var(--tech-cyan);">
+                <h3>Conclusión Principal</h3>
+                <p>La arquitectura híbrida permite lo mejor de dos mundos: la flexibilidad de ingesta de MongoDB y la potencia analítica de BigQuery, sin sacrificar la velocidad de usuario final en DynamoDB.</p>
+            </div>
+            <br>
+            <div class="split-layout">
+                <div>
+                    <h4>Limitaciones</h4>
+                    <ul style="color: #888;">
+                        <li>Ejecución Batch Manual.</li>
+                        <li>Falta de Orquestación (Airflow).</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Trabajo Futuro</h4>
+                    <ul style="color: var(--tech-green);">
+                        <li>Integrar Apache Airflow.</li>
+                        <li>Bases de datos de Grafos para "Batallas en pista".</li>
+                        <li>Despliegue en Kubernetes.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.getElementById('counter');
+        const progress = document.getElementById('progress');
+        const totalSlides = slides.length;
+
+        function updateUI() {
+            // Update Slides
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                } else if (index < currentSlide) {
+                    slide.classList.add('prev');
+                }
+            });
+
+            // Update Counter
+            counter.innerHTML = `${(currentSlide + 1).toString().padStart(2, '0')}<span style="font-size:0.8rem; color:#666">/${totalSlides}</span>`;
+
+            // Update Progress Bar
+            const percent = ((currentSlide + 1) / totalSlides) * 100;
+            progress.style.width = `${percent}%`;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateUI();
+            }
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Initialize
+        updateUI();
+
+    </script>
+</body>
+</html>
