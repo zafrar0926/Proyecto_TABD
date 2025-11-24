@@ -98,8 +98,15 @@ def render_pipeline_tab():
                 time.sleep(ETL_SLEEP_INTERVAL)
                 st.rerun()
             else:
-                st.error(f"FATAL ERROR: Check logs above")
-                time.sleep(ETL_SLEEP_INTERVAL)
-                st.rerun()
+                # Mostrar los logs con el error
+                st.markdown(f"""
+                <div class="console-box">
+                    <div class="log-entry">{log_content.replace(chr(10), '</div><div class="log-entry">')}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.error("❌ PIPELINE FAILED - Check error details above")
+
+                # Detener auto-ingesta en caso de error
+                st.session_state.ingesta_activa = False
         else:
             render_idle_console()
